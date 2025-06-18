@@ -33,19 +33,40 @@ export async function uploadArtifact(
   const fileDigest = await computeMd5(zipFilePath)
 
   // Determine S3 key using prefix and artifact name
-  const s3Key = `${options.prefix}/${options.artifactName}.zip`
+  const s3Key = `${options.prefix}/${options.artifactName}.tar.zst`
 
   // Upload to S3
   try {
     const fileStream = fs.createReadStream(zipFilePath)
+
+    // Get optimal queue size based on file size
+    const getOptimalQueueSize = (fileSize: number) => {
+      if (fileSize > 1024 * 1024 * 1024) { // > 1GB
+        return 20;
+      } else if (fileSize > 100 * 1024 * 1024) { // > 100MB
+        return 10;
+      } else {
+        return 4;
+      }
+    };
+
+    // Get optimal part size based on file size
+    const getOptimalPartSize = (fileSize: number) => {
+      if (fileSize > 1024 * 1024 * 1024) { // > 1GB
+        return 16 * 1024 * 1024; // 16MB
+      } else {
+        return getUploadChunkSize(); // Default 8MB
+      }
+    };
+
 
     const upload = new Upload({
       client: new S3Client({
         region: options.awsRegion,
         maxAttempts: 3
       }),
-      queueSize: 10,
-      partSize: getUploadChunkSize(),
+      queueSize: getOptimalQueueSize(fileSize),
+      partSize: getOptimalPartSize(fileSize),
       leavePartsOnError: false,
       params: {
         Bucket: options.bucketName,
@@ -68,7 +89,6 @@ export async function uploadArtifact(
 
         core.info(`Upload progress: ${Math.round((progress.loaded / progress.total) * 100)}% | Speed: ${uploadSpeed.toFixed(2)} MB/s`);
       }
-
     });
 
     await upload.done();
