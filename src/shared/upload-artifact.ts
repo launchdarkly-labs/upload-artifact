@@ -8,6 +8,7 @@ import path from 'node:path'
 import {getUploadChunkSize, UploadOptions} from '../upload/constants'
 import * as archiver from 'archiver'
 import { Upload } from '@aws-sdk/lib-storage'
+import {compressZstd} from './compress'
 
 export async function uploadArtifact(
   filesToUpload: string[],
@@ -17,7 +18,7 @@ export async function uploadArtifact(
   const expiryDate = new Date()
   expiryDate.setDate(expiryDate.getDate() )
 
-  const zipFilePath = await zipper(
+  const zipFilePath = await compressZstd(
     filesToUpload,
     rootDirectory,
     options.artifactName,
