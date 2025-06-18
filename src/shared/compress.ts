@@ -19,6 +19,15 @@ export async function compressZstd(files: string[], rootDirectory: string, artif
     // Create a tar-stream pack instance
     const pack = tar.pack();
 
+    const outputStream = fs.createWriteStream(outputFilePath);
+    const zstdCompress = new ZSTDCompress(compressionLevel);
+
+    const pipelinePromise = pipelineAsync(
+      pack,
+      zstdCompress,
+      outputStream
+    );
+
     // Process all files
     for (const file of files) {
       try {
@@ -63,18 +72,7 @@ export async function compressZstd(files: string[], rootDirectory: string, artif
 
     // Finalize the tar pack
     pack.finalize();
-
-    const zstdCompress = new ZSTDCompress(compressionLevel)
-
-    // Create output file stream
-    const outputStream = fs.createWriteStream(outputFilePath);
-
-    // Pipe the tar stream through Zstd compression to the output file
-    await pipelineAsync(
-      pack,
-      zstdCompress,
-      outputStream
-    );
+    await pipelinePromise;
 
     core.debug(`Tar+Zstd archive created at ${outputFilePath}`);
     return outputFilePath;

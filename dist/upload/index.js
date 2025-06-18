@@ -150929,6 +150929,9 @@ function compressZstd(files, rootDirectory, artifactName, compressionLevel = 3) 
         try {
             // Create a tar-stream pack instance
             const pack = tar.pack();
+            const outputStream = fs.createWriteStream(outputFilePath);
+            const zstdCompress = new simple_zstd_1.ZSTDCompress(compressionLevel);
+            const pipelinePromise = pipelineAsync(pack, zstdCompress, outputStream);
             // Process all files
             for (const file of files) {
                 try {
@@ -150969,11 +150972,7 @@ function compressZstd(files, rootDirectory, artifactName, compressionLevel = 3) 
             }
             // Finalize the tar pack
             pack.finalize();
-            const zstdCompress = new simple_zstd_1.ZSTDCompress(compressionLevel);
-            // Create output file stream
-            const outputStream = fs.createWriteStream(outputFilePath);
-            // Pipe the tar stream through Zstd compression to the output file
-            yield pipelineAsync(pack, zstdCompress, outputStream);
+            yield pipelinePromise;
             core.debug(`Tar+Zstd archive created at ${outputFilePath}`);
             return outputFilePath;
         }
