@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import {Inputs, NoFileOptions} from './constants'
 import {UploadInputs} from './upload-inputs'
 
@@ -31,7 +32,8 @@ export function getInputs(): UploadInputs {
     prefix = prefix.slice(0, -1)
   }
 
-  const bucketPath = `${prefix}/${process.env.GITHUB_ACTION_REPOSITORY}/${process.env.GITHUB_RUN_ID}`
+  const ghCtx = github.context
+  const bucketPath = `${prefix}/${ghCtx.repo.owner}/${ghCtx.repo.repo}/${ghCtx.runId}`
 
   const inputs = {
     bucketName,
