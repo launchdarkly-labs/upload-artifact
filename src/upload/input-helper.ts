@@ -6,6 +6,9 @@ import {UploadInputs} from './upload-inputs'
  * Helper to get all the inputs for the action
  */
 export function getInputs(): UploadInputs {
+  const bucketName = core.getInput(Inputs.BucketName, {required: true})
+  const awsRegion = core.getInput(Inputs.AwsRegion)
+  let prefix = core.getInput(Inputs.Prefix)
   const name = core.getInput(Inputs.Name)
   const path = core.getInput(Inputs.Path, {required: true})
   const overwrite = core.getBooleanInput(Inputs.Overwrite)
@@ -24,7 +27,14 @@ export function getInputs(): UploadInputs {
     )
   }
 
+  if (!prefix) {
+    prefix = `artifacts/${process.env.GITHUB_ACTION_REPOSITORY}/${process.env.GITHUB_RUN_ID}_${process.env.GITHUB_RUN_ATTEMPT}`
+  }
+
   const inputs = {
+    bucketName,
+    awsRegion,
+    prefix,
     artifactName: name,
     searchPath: path,
     ifNoFilesFound: noFileBehavior,

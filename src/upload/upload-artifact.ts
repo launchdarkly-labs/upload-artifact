@@ -5,7 +5,7 @@ import artifact, {
 } from '@actions/artifact'
 import {findFilesToUpload} from '../shared/search'
 import {getInputs} from './input-helper'
-import {NoFileOptions} from './constants'
+import {NoFileOptions, UploadOptions} from './constants'
 import {uploadArtifact} from '../shared/upload-artifact'
 
 async function deleteArtifactIfExists(artifactName: string): Promise<void> {
@@ -61,9 +61,16 @@ export async function run(): Promise<void> {
       await deleteArtifactIfExists(inputs.artifactName)
     }
 
-    const options: UploadArtifactOptions = {}
-    if (inputs.retentionDays) {
-      options.retentionDays = inputs.retentionDays
+    const options: UploadOptions = {
+      bucketName: inputs.bucketName,
+      awsRegion: inputs.awsRegion,
+      prefix: inputs.prefix,
+      artifactName: inputs.artifactName,
+      searchPath: inputs.searchPath,
+      overwrite: inputs.overwrite,
+      includeHiddenFiles: inputs.includeHiddenFiles,
+      retentionDays: inputs.retentionDays,
+      ifNoFilesFound: inputs.ifNoFilesFound
     }
 
     if (typeof inputs.compressionLevel !== 'undefined') {
@@ -71,7 +78,6 @@ export async function run(): Promise<void> {
     }
 
     await uploadArtifact(
-      inputs.artifactName,
       searchResult.filesToUpload,
       searchResult.rootDirectory,
       options

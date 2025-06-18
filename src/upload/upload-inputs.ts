@@ -2,6 +2,21 @@ import {NoFileOptions} from './constants'
 
 export interface UploadInputs {
   /**
+   * The S3 bucket to upload the file to
+   */
+  bucketName: string
+
+  /**
+   * The AWS region which the bucket resides in. Defaults to us-east-1
+   */
+  awsRegion: string
+
+  /**
+   * The prefix to prepend to the artifact name
+   */
+  prefix: string
+
+  /**
    * The name of the artifact that will be uploaded
    */
   artifactName: string
