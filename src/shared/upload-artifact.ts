@@ -4,18 +4,16 @@ import * as mime from 'mime-types'
 import fs from 'node:fs'
 import {realpath} from 'node:fs/promises'
 import crypto from 'node:crypto'
+import path from 'node:path'
 import {getUploadChunkSize, UploadOptions} from '../upload/constants'
 import * as archiver from 'archiver'
+import { Upload } from '@aws-sdk/lib-storage'
 
 export async function uploadArtifact(
   filesToUpload: string[],
   rootDirectory: string,
   options: UploadOptions
 ) {
-  const s3Client = new S3Client({
-    region: options.awsRegion,
-  })
-
   const expiryDate = new Date()
   expiryDate.setDate(expiryDate.getDate() )
 
@@ -40,16 +38,22 @@ export async function uploadArtifact(
   try {
     const fileStream = fs.createReadStream(zipFilePath)
 
-    await s3Client.send(new PutObjectCommand({
-      Bucket: options.bucketName,
-      Key: s3Key,
-      Body: fileStream,
-      ContentType: mime.lookup(zipFilePath) || 'application/zip',
-      ContentLength: fileSize,
-      // Add any additional S3 parameters you need
-    }))
+    const upload = new Upload({
+      client: new S3Client({
+        region: options.awsRegion
+      }),
+      queueSize: 4,
+      partSize: getUploadChunkSize(),
+      leavePartsOnError: false,
+      params: {
+        Bucket: options.bucketName,
+        Key: s3Key,
+        ContentType: mime.lookup(zipFilePath) || 'application/zip',
+        ContentLength: fileSize,
+        Expires: expiryDate
+      }
+    })
 
-    // Create a unique ID for the artifact (you might want to use something more unique)
     const artifactId = crypto.createHash('sha256').update(`${options.bucketName}/${s3Key}`).digest('hex').substring(0, 8)
 
     core.info(
@@ -136,18 +140,22 @@ export async function zipper(
   for (const file of files) {
     try {
       const stats = fs.statSync(file)
+      // Calculate the relative path from rootDirectory
+      const relativePath = path.relative(rootDirectory, file)
+
       if (stats.isSymbolicLink()) {
         core.debug(`Processing ${file} as a symbolic link`)
         const realFilePath = await realpath(file)
-        zip.file(realFilePath, {name: file})
+        zip.file(realFilePath, {name: relativePath})
       } else if (stats.isFile()) {
         core.debug(`Processing ${file} as a file`)
-        zip.file(file, {name: file})
+        zip.file(file, {name: relativePath})
       }
     } catch (error) {
       core.warning(`Failed to process ${file}: ${error}`)
     }
   }
+
 
   // Create a promise to wait for the zip finalization to complete
   const finalizePromise = new Promise<void>((resolve, reject) => {
