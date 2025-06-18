@@ -150926,55 +150926,61 @@ function compressZstd(files, rootDirectory, artifactName, compressionLevel = 3) 
         core.debug(`Creating artifact archive with Zstd compressionLevel: ${compressionLevel}`);
         // Define the output file path with .tar.zst extension
         const outputFilePath = `${artifactName}.tar.zst`;
-        // Create a tar-stream pack instance
-        const pack = tar.pack();
-        // Process all files
-        for (const file of files) {
-            try {
-                const stats = fs.statSync(file);
-                const relativePath = path.relative(rootDirectory, file);
-                if (stats.isSymbolicLink()) {
-                    core.debug(`Processing ${file} as a symbolic link`);
-                    const realFilePath = yield (0, promises_1.realpath)(file);
-                    const linkTarget = fs.readlinkSync(file);
-                    const entry = pack.entry({
-                        name: relativePath,
-                        type: 'symlink',
-                        linkname: linkTarget,
-                        size: 0
-                    });
-                    entry.end();
+        try {
+            // Create a tar-stream pack instance
+            const pack = tar.pack();
+            // Process all files
+            for (const file of files) {
+                try {
+                    const stats = fs.statSync(file);
+                    const relativePath = path.relative(rootDirectory, file);
+                    if (stats.isSymbolicLink()) {
+                        core.debug(`Processing ${file} as a symbolic link`);
+                        const realFilePath = yield (0, promises_1.realpath)(file);
+                        const linkTarget = fs.readlinkSync(file);
+                        const entry = pack.entry({
+                            name: relativePath,
+                            type: 'symlink',
+                            linkname: linkTarget,
+                            size: 0
+                        });
+                        entry.end();
+                    }
+                    else if (stats.isFile()) {
+                        core.debug(`Processing ${file} as a file`);
+                        // Create entry in the tar archive
+                        const entry = pack.entry({
+                            name: relativePath,
+                            size: stats.size,
+                            mode: stats.mode,
+                            mtime: stats.mtime
+                        });
+                        const fileStream = fs.createReadStream(file);
+                        yield new Promise((resolve, reject) => {
+                            fileStream.on('error', reject);
+                            fileStream.on('end', resolve);
+                            fileStream.pipe(entry);
+                        });
+                    }
                 }
-                else if (stats.isFile()) {
-                    core.debug(`Processing ${file} as a file`);
-                    // Create entry in the tar archive
-                    const entry = pack.entry({
-                        name: relativePath,
-                        size: stats.size,
-                        mode: stats.mode,
-                        mtime: stats.mtime
-                    });
-                    const fileStream = fs.createReadStream(file);
-                    yield new Promise((resolve, reject) => {
-                        fileStream.on('error', reject);
-                        fileStream.on('end', resolve);
-                        fileStream.pipe(entry);
-                    });
+                catch (error) {
+                    core.warning(`Failed to process ${file}: ${error}`);
                 }
             }
-            catch (error) {
-                core.warning(`Failed to process ${file}: ${error}`);
-            }
+            // Finalize the tar pack
+            pack.finalize();
+            const zstdCompress = new simple_zstd_1.ZSTDCompress(compressionLevel);
+            // Create output file stream
+            const outputStream = fs.createWriteStream(outputFilePath);
+            // Pipe the tar stream through Zstd compression to the output file
+            yield pipelineAsync(pack, zstdCompress, outputStream);
+            core.debug(`Tar+Zstd archive created at ${outputFilePath}`);
+            return outputFilePath;
         }
-        // Finalize the tar pack
-        pack.finalize();
-        const zstdCompress = new simple_zstd_1.ZSTDCompress(compressionLevel);
-        // Create output file stream
-        const outputStream = fs.createWriteStream(outputFilePath);
-        // Pipe the tar stream through Zstd compression to the output file
-        yield pipelineAsync(pack, zstdCompress, outputStream);
-        core.debug(`Tar+Zstd archive created at ${outputFilePath}`);
-        return outputFilePath;
+        catch (error) {
+            core.error(`Failed to create tar+zstd archive: ${error}`);
+            throw error;
+        }
     });
 }
 exports.compressZstd = compressZstd;
@@ -151670,7 +151676,9 @@ function run() {
             if (typeof inputs.compressionLevel !== 'undefined') {
                 options.compressionLevel = inputs.compressionLevel;
             }
+            core.debug(`Uploading ${searchResult.filesToUpload.length} files`);
             yield (0, upload_artifact_1.uploadArtifact)(searchResult.filesToUpload, searchResult.rootDirectory, options);
+            core.debug('Upload complete');
         }
     });
 }

@@ -77,10 +77,12 @@ export async function run(): Promise<void> {
       options.compressionLevel = inputs.compressionLevel
     }
 
+    core.debug(`Uploading ${searchResult.filesToUpload.length} files`)
     await uploadArtifact(
       searchResult.filesToUpload,
       searchResult.rootDirectory,
       options
     )
+    core.debug('Upload complete')
   }
 }
