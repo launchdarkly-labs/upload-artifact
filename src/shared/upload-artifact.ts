@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {PutObjectCommand, S3Client} from '@aws-sdk/client-s3'
+import {S3Client} from '@aws-sdk/client-s3'
 import * as mime from 'mime-types'
 import fs from 'node:fs'
 import {realpath} from 'node:fs/promises'

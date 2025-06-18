@@ -38,7 +38,9 @@
     "@aws-sdk/lib-storage": "^3.830.0",
     "archiver": "^7.0.1",
     "mime-types": "^3.0.1",
-    "minimatch": "^9.0.3"
+    "minimatch": "^9.0.3",
+    "simple-zstd": "^1.4.2",
+    "tar-stream": "^3.1.7"
   },
   "devDependencies": {
     "@types/jest": "^29.2.5",
