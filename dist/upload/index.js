@@ -151215,17 +151215,38 @@ function uploadArtifact(filesToUpload, rootDirectory, options) {
         // Compute MD5 hash for the file (optional but good for integrity)
         const fileDigest = yield computeMd5(zipFilePath);
         // Determine S3 key using prefix and artifact name
-        const s3Key = `${options.prefix}/${options.artifactName}.zip`;
+        const s3Key = `${options.prefix}/${options.artifactName}.tar.zst`;
         // Upload to S3
         try {
             const fileStream = node_fs_1.default.createReadStream(zipFilePath);
+            // Get optimal queue size based on file size
+            const getOptimalQueueSize = (fileSize) => {
+                if (fileSize > 1024 * 1024 * 1024) { // > 1GB
+                    return 20;
+                }
+                else if (fileSize > 100 * 1024 * 1024) { // > 100MB
+                    return 10;
+                }
+                else {
+                    return 4;
+                }
+            };
+            // Get optimal part size based on file size
+            const getOptimalPartSize = (fileSize) => {
+                if (fileSize > 1024 * 1024 * 1024) { // > 1GB
+                    return 16 * 1024 * 1024; // 16MB
+                }
+                else {
+                    return (0, constants_1.getUploadChunkSize)(); // Default 8MB
+                }
+            };
             const upload = new lib_storage_1.Upload({
                 client: new client_s3_1.S3Client({
                     region: options.awsRegion,
                     maxAttempts: 3
                 }),
-                queueSize: 10,
-                partSize: (0, constants_1.getUploadChunkSize)(),
+                queueSize: getOptimalQueueSize(fileSize),
+                partSize: getOptimalPartSize(fileSize),
                 leavePartsOnError: false,
                 params: {
                     Bucket: options.bucketName,
