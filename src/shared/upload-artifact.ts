@@ -56,6 +56,12 @@ export async function uploadArtifact(
 
     const artifactId = crypto.createHash('sha256').update(`${options.bucketName}/${s3Key}`).digest('hex').substring(0, 8)
 
+    upload.on("httpUploadProgress", (progress) => {
+      console.log(progress);
+    });
+
+    await upload.done();
+
     core.info(
       `Artifact ${options.artifactName} has been successfully uploaded! Final size is ${fileSize} bytes. Artifact ID is ${artifactId}`
     )

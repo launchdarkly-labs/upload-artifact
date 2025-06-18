@@ -146912,6 +146912,10 @@ function uploadArtifact(filesToUpload, rootDirectory, options) {
                 }
             });
             const artifactId = node_crypto_1.default.createHash('sha256').update(`${options.bucketName}/${s3Key}`).digest('hex').substring(0, 8);
+            upload.on("httpUploadProgress", (progress) => {
+                console.log(progress);
+            });
+            yield upload.done();
             core.info(`Artifact ${options.artifactName} has been successfully uploaded! Final size is ${fileSize} bytes. Artifact ID is ${artifactId}`);
             core.setOutput('artifact-id', artifactId);
             core.setOutput('artifact-digest', fileDigest);
