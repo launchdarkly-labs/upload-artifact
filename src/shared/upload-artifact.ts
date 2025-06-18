@@ -134,14 +134,15 @@ export async function zipper(
   zip.pipe(output)
 
   for (const file of files) {
-    const fullPath = `${rootDirectory}/${file}`
     try {
-      const stats = fs.statSync(fullPath)
+      const stats = fs.statSync(file)
       if (stats.isSymbolicLink()) {
-        const realFilePath = await realpath(fullPath)
+        core.debug(`Processing ${file} as a symbolic link`)
+        const realFilePath = await realpath(file)
         zip.file(realFilePath, {name: file})
       } else if (stats.isFile()) {
-        zip.file(fullPath, {name: file})
+        core.debug(`Processing ${file} as a file`)
+        zip.file(file, {name: file})
       }
     } catch (error) {
       core.warning(`Failed to process ${file}: ${error}`)

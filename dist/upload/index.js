@@ -142389,15 +142389,16 @@ function zipper(files, rootDirectory, artifactName, compressionLevel) {
         zip.on('warning', zipWarningCallback);
         zip.pipe(output);
         for (const file of files) {
-            const fullPath = `${rootDirectory}/${file}`;
             try {
-                const stats = node_fs_1.default.statSync(fullPath);
+                const stats = node_fs_1.default.statSync(file);
                 if (stats.isSymbolicLink()) {
-                    const realFilePath = yield (0, promises_1.realpath)(fullPath);
+                    core.debug(`Processing ${file} as a symbolic link`);
+                    const realFilePath = yield (0, promises_1.realpath)(file);
                     zip.file(realFilePath, { name: file });
                 }
                 else if (stats.isFile()) {
-                    zip.file(fullPath, { name: file });
+                    core.debug(`Processing ${file} as a file`);
+                    zip.file(file, { name: file });
                 }
             }
             catch (error) {
@@ -142584,13 +142585,14 @@ function getInputs() {
     if (!noFileBehavior) {
         core.setFailed(`Unrecognized ${constants_1.Inputs.IfNoFilesFound} input. Provided: ${ifNoFilesFound}. Available options: ${Object.keys(constants_1.NoFileOptions)}`);
     }
-    if (!prefix) {
-        prefix = `artifacts/${process.env.GITHUB_ACTION_REPOSITORY}/${process.env.GITHUB_RUN_ID}_${process.env.GITHUB_RUN_ATTEMPT}`;
+    if (prefix.endsWith('/')) {
+        prefix = prefix.slice(0, -1);
     }
+    const bucketPath = `${prefix}/${process.env.GITHUB_ACTION_REPOSITORY}/${process.env.GITHUB_RUN_ID}`;
     const inputs = {
         bucketName,
         awsRegion,
-        prefix,
+        prefix: bucketPath,
         artifactName: name,
         searchPath: path,
         ifNoFilesFound: noFileBehavior,

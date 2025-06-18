@@ -27,14 +27,16 @@ export function getInputs(): UploadInputs {
     )
   }
 
-  if (!prefix) {
-    prefix = `artifacts/${process.env.GITHUB_ACTION_REPOSITORY}/${process.env.GITHUB_RUN_ID}_${process.env.GITHUB_RUN_ATTEMPT}`
+  if (prefix.endsWith('/')) {
+    prefix = prefix.slice(0, -1)
   }
+
+  const bucketPath = `${prefix}/${process.env.GITHUB_ACTION_REPOSITORY}/${process.env.GITHUB_RUN_ID}`
 
   const inputs = {
     bucketName,
     awsRegion,
-    prefix,
+    prefix: bucketPath,
     artifactName: name,
     searchPath: path,
     ifNoFilesFound: noFileBehavior,
