@@ -50,7 +50,8 @@ export async function uploadArtifact(
         Key: s3Key,
         ContentType: mime.lookup(zipFilePath) || 'application/zip',
         ContentLength: fileSize,
-        Expires: expiryDate
+        Expires: expiryDate,
+        Body: fileStream
       }
     })
 

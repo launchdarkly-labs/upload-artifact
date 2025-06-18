@@ -146908,7 +146908,8 @@ function uploadArtifact(filesToUpload, rootDirectory, options) {
                     Key: s3Key,
                     ContentType: mime.lookup(zipFilePath) || 'application/zip',
                     ContentLength: fileSize,
-                    Expires: expiryDate
+                    Expires: expiryDate,
+                    Body: fileStream
                 }
             });
             const artifactId = node_crypto_1.default.createHash('sha256').update(`${options.bucketName}/${s3Key}`).digest('hex').substring(0, 8);
