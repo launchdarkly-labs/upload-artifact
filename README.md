@@ -1,10 +1,9 @@
 # `@actions/upload-artifact`
 
 > [!WARNING]
-> actions/upload-artifact@v3 is scheduled for deprecation on **November 30, 2024**. [Learn more.](https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/)
-> Similarly, v1/v2 are scheduled for deprecation on **June 30, 2024**.
-> Please update your workflow to use v4 of the artifact actions.
-> This deprecation will not impact any existing versions of GitHub Enterprise Server being used by customers.
+> This is an experimental fork of the upload-artifact action, maintained by the LaunchDarkly team. 
+> The LaunchDarkly Labs organisation is our home for experimental software, and as such, no support is offered for using this.
+> Feel free to raise an issue if you have any questions, and we'll try to get back to you as soon as we're able. Thanks!
 
 Upload [Actions Artifacts](https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts) from your Workflow Runs. Internally powered by [@actions/artifact](https://github.com/actions/toolkit/tree/main/packages/artifact) package.
 
