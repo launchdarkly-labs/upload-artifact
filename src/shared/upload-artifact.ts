@@ -40,9 +40,10 @@ export async function uploadArtifact(
 
     const upload = new Upload({
       client: new S3Client({
-        region: options.awsRegion
+        region: options.awsRegion,
+        maxAttempts: 3
       }),
-      queueSize: 4,
+      queueSize: 10,
       partSize: getUploadChunkSize(),
       leavePartsOnError: false,
       params: {
@@ -55,8 +56,18 @@ export async function uploadArtifact(
       }
     })
 
+    let uploadedBytes = 0;
+    const startTime = Date.now();
+
     upload.on("httpUploadProgress", (progress) => {
-      console.log(progress);
+      if (progress.loaded && progress.total) {
+        uploadedBytes = progress.loaded;
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        const uploadSpeed = uploadedBytes / elapsedSeconds / 1024 / 1024; // MB/s
+
+        core.info(`Upload progress: ${Math.round((progress.loaded / progress.total) * 100)}% | Speed: ${uploadSpeed.toFixed(2)} MB/s`);
+      }
+
     });
 
     await upload.done();

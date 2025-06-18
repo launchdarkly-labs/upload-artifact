@@ -146898,9 +146898,10 @@ function uploadArtifact(filesToUpload, rootDirectory, options) {
             const fileStream = node_fs_1.default.createReadStream(zipFilePath);
             const upload = new lib_storage_1.Upload({
                 client: new client_s3_1.S3Client({
-                    region: options.awsRegion
+                    region: options.awsRegion,
+                    maxAttempts: 3
                 }),
-                queueSize: 4,
+                queueSize: 10,
                 partSize: (0, constants_1.getUploadChunkSize)(),
                 leavePartsOnError: false,
                 params: {
@@ -146912,8 +146913,15 @@ function uploadArtifact(filesToUpload, rootDirectory, options) {
                     Body: fileStream
                 }
             });
+            let uploadedBytes = 0;
+            const startTime = Date.now();
             upload.on("httpUploadProgress", (progress) => {
-                console.log(progress);
+                if (progress.loaded && progress.total) {
+                    uploadedBytes = progress.loaded;
+                    const elapsedSeconds = (Date.now() - startTime) / 1000;
+                    const uploadSpeed = uploadedBytes / elapsedSeconds / 1024 / 1024; // MB/s
+                    core.info(`Upload progress: ${Math.round((progress.loaded / progress.total) * 100)}% | Speed: ${uploadSpeed.toFixed(2)} MB/s`);
+                }
             });
             yield upload.done();
             const artifactId = node_crypto_1.default.createHash('sha256').update(`${options.bucketName}/${s3Key}`).digest('hex').substring(0, 8);
@@ -147083,7 +147091,7 @@ var NoFileOptions;
 // Used for controlling the highWaterMark value of the zip that is being streamed
 // The same value is used as the chunk size that is use during upload to blob storage
 function getUploadChunkSize() {
-    return 8 * 1024 * 1024; // 8 MB Chunks
+    return 16 * 1024 * 1024; // 8 MB Chunks
 }
 exports.getUploadChunkSize = getUploadChunkSize;
 
