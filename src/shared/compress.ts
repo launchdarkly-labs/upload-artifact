@@ -36,7 +36,6 @@ export async function compressZstd(files: string[], rootDirectory: string, artif
 
         if (stats.isSymbolicLink()) {
           core.debug(`Processing ${file} as a symbolic link`);
-          const realFilePath = await realpath(file);
           const linkTarget = fs.readlinkSync(file);
 
           const entry = pack.entry({

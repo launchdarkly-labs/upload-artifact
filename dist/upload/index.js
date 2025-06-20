@@ -150919,7 +150919,6 @@ const tar = __importStar(__nccwpck_require__(28423));
 const simple_zstd_1 = __nccwpck_require__(17536);
 const node_util_1 = __nccwpck_require__(47261);
 const node_stream_1 = __nccwpck_require__(84492);
-const promises_1 = __nccwpck_require__(93977);
 const pipelineAsync = (0, node_util_1.promisify)(node_stream_1.pipeline);
 function compressZstd(files, rootDirectory, artifactName, compressionLevel = 3) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -150939,7 +150938,6 @@ function compressZstd(files, rootDirectory, artifactName, compressionLevel = 3) 
                     const relativePath = path.relative(rootDirectory, file);
                     if (stats.isSymbolicLink()) {
                         core.debug(`Processing ${file} as a symbolic link`);
-                        const realFilePath = yield (0, promises_1.realpath)(file);
                         const linkTarget = fs.readlinkSync(file);
                         const entry = pack.entry({
                             name: relativePath,
@@ -151225,33 +151223,30 @@ function uploadArtifact(filesToUpload, rootDirectory, options) {
         try {
             const fileStream = node_fs_1.default.createReadStream(zipFilePath);
             // Get optimal queue size based on file size
-            const getOptimalQueueSize = (fileSize) => {
-                if (fileSize > 1024 * 1024 * 1024) { // > 1GB
-                    return 20;
-                }
-                else if (fileSize > 100 * 1024 * 1024) { // > 100MB
-                    return 10;
-                }
-                else {
-                    return 4;
-                }
-            };
+            // const getOptimalQueueSize = (fileSize: number) => {
+            //   if (fileSize > 1024 * 1024 * 1024) { // > 1GB
+            //     return 20;
+            //   } else if (fileSize > 100 * 1024 * 1024) { // > 100MB
+            //     return 10;
+            //   } else {
+            //     return 4;
+            //   }
+            // };
             // Get optimal part size based on file size
-            const getOptimalPartSize = (fileSize) => {
-                if (fileSize > 1024 * 1024 * 1024) { // > 1GB
-                    return 16 * 1024 * 1024; // 16MB
-                }
-                else {
-                    return (0, constants_1.getUploadChunkSize)(); // Default 8MB
-                }
-            };
+            // const getOptimalPartSize = (fileSize: number) => {
+            //   if (fileSize > 1024 * 1024 * 1024) { // > 1GB
+            //     return 16 * 1024 * 1024; // 16MB
+            //   } else {
+            //     return getUploadChunkSize(); // Default 8MB
+            //   }
+            // };
             const upload = new lib_storage_1.Upload({
                 client: new client_s3_1.S3Client({
                     region: options.awsRegion,
                     maxAttempts: 3
                 }),
-                queueSize: getOptimalQueueSize(fileSize),
-                partSize: getOptimalPartSize(fileSize),
+                queueSize: 4,
+                partSize: 32 * 1024 * 1024,
                 leavePartsOnError: false,
                 params: {
                     Bucket: options.bucketName,

@@ -40,24 +40,24 @@ export async function uploadArtifact(
     const fileStream = fs.createReadStream(zipFilePath)
 
     // Get optimal queue size based on file size
-    const getOptimalQueueSize = (fileSize: number) => {
-      if (fileSize > 1024 * 1024 * 1024) { // > 1GB
-        return 20;
-      } else if (fileSize > 100 * 1024 * 1024) { // > 100MB
-        return 10;
-      } else {
-        return 4;
-      }
-    };
+    // const getOptimalQueueSize = (fileSize: number) => {
+    //   if (fileSize > 1024 * 1024 * 1024) { // > 1GB
+    //     return 20;
+    //   } else if (fileSize > 100 * 1024 * 1024) { // > 100MB
+    //     return 10;
+    //   } else {
+    //     return 4;
+    //   }
+    // };
 
     // Get optimal part size based on file size
-    const getOptimalPartSize = (fileSize: number) => {
-      if (fileSize > 1024 * 1024 * 1024) { // > 1GB
-        return 16 * 1024 * 1024; // 16MB
-      } else {
-        return getUploadChunkSize(); // Default 8MB
-      }
-    };
+    // const getOptimalPartSize = (fileSize: number) => {
+    //   if (fileSize > 1024 * 1024 * 1024) { // > 1GB
+    //     return 16 * 1024 * 1024; // 16MB
+    //   } else {
+    //     return getUploadChunkSize(); // Default 8MB
+    //   }
+    // };
 
 
     const upload = new Upload({
@@ -65,8 +65,8 @@ export async function uploadArtifact(
         region: options.awsRegion,
         maxAttempts: 3
       }),
-      queueSize: getOptimalQueueSize(fileSize),
-      partSize: getOptimalPartSize(fileSize),
+      queueSize: 4,
+      partSize: 32 * 1024 * 1024,
       leavePartsOnError: false,
       params: {
         Bucket: options.bucketName,
