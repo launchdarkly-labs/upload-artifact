@@ -16,7 +16,7 @@ export async function uploadArtifact(
   options: UploadOptions
 ) {
   const expiryDate = new Date()
-  expiryDate.setDate(expiryDate.getDate() )
+  expiryDate.setDate(expiryDate.getDate() + options.retentionDays)
 
   const zipFilePath = await compressZstd(
     filesToUpload,
@@ -35,30 +35,8 @@ export async function uploadArtifact(
   // Determine S3 key using prefix and artifact name
   const s3Key = `${options.prefix}/${options.artifactName}.tar.zst`
 
-  // Upload to S3
   try {
     const fileStream = fs.createReadStream(zipFilePath)
-
-    // Get optimal queue size based on file size
-    // const getOptimalQueueSize = (fileSize: number) => {
-    //   if (fileSize > 1024 * 1024 * 1024) { // > 1GB
-    //     return 20;
-    //   } else if (fileSize > 100 * 1024 * 1024) { // > 100MB
-    //     return 10;
-    //   } else {
-    //     return 4;
-    //   }
-    // };
-
-    // Get optimal part size based on file size
-    // const getOptimalPartSize = (fileSize: number) => {
-    //   if (fileSize > 1024 * 1024 * 1024) { // > 1GB
-    //     return 16 * 1024 * 1024; // 16MB
-    //   } else {
-    //     return getUploadChunkSize(); // Default 8MB
-    //   }
-    // };
-
 
     const upload = new Upload({
       client: new S3Client({
@@ -101,13 +79,12 @@ export async function uploadArtifact(
     core.setOutput('artifact-id', artifactId)
     core.setOutput('artifact-digest', fileDigest)
 
-    // Create an artifact URL (this would be your S3 URL or a signed URL)
     const artifactURL = `s3://${options.bucketName}/${s3Key}`
-
     core.info(`Artifact upload location: ${artifactURL}`)
-    core.setOutput('artifact-url', artifactURL)
+    // TODO: Validate pre-signed URL theory
+    // core.setOutput('artifact-url', artifactURL)
 
-    // Clean up the temporary zip file if needed
+    // Clean up the temporary file
     fs.unlinkSync(zipFilePath)
 
     return {

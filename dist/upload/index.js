@@ -151210,7 +151210,7 @@ const compress_1 = __nccwpck_require__(59224);
 function uploadArtifact(filesToUpload, rootDirectory, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate());
+        expiryDate.setDate(expiryDate.getDate() + options.retentionDays);
         const zipFilePath = yield (0, compress_1.compressZstd)(filesToUpload, rootDirectory, options.artifactName, options.compressionLevel || 6);
         // Get file stats for size info
         const fileStats = node_fs_1.default.statSync(zipFilePath);
@@ -151219,27 +151219,8 @@ function uploadArtifact(filesToUpload, rootDirectory, options) {
         const fileDigest = yield computeMd5(zipFilePath);
         // Determine S3 key using prefix and artifact name
         const s3Key = `${options.prefix}/${options.artifactName}.tar.zst`;
-        // Upload to S3
         try {
             const fileStream = node_fs_1.default.createReadStream(zipFilePath);
-            // Get optimal queue size based on file size
-            // const getOptimalQueueSize = (fileSize: number) => {
-            //   if (fileSize > 1024 * 1024 * 1024) { // > 1GB
-            //     return 20;
-            //   } else if (fileSize > 100 * 1024 * 1024) { // > 100MB
-            //     return 10;
-            //   } else {
-            //     return 4;
-            //   }
-            // };
-            // Get optimal part size based on file size
-            // const getOptimalPartSize = (fileSize: number) => {
-            //   if (fileSize > 1024 * 1024 * 1024) { // > 1GB
-            //     return 16 * 1024 * 1024; // 16MB
-            //   } else {
-            //     return getUploadChunkSize(); // Default 8MB
-            //   }
-            // };
             const upload = new lib_storage_1.Upload({
                 client: new client_s3_1.S3Client({
                     region: options.awsRegion,
@@ -151272,11 +151253,11 @@ function uploadArtifact(filesToUpload, rootDirectory, options) {
             core.info(`Artifact ${options.artifactName} has been successfully uploaded! Final size is ${fileSize} bytes. Artifact ID is ${artifactId}`);
             core.setOutput('artifact-id', artifactId);
             core.setOutput('artifact-digest', fileDigest);
-            // Create an artifact URL (this would be your S3 URL or a signed URL)
             const artifactURL = `s3://${options.bucketName}/${s3Key}`;
             core.info(`Artifact upload location: ${artifactURL}`);
-            core.setOutput('artifact-url', artifactURL);
-            // Clean up the temporary zip file if needed
+            // TODO: Validate pre-signed URL theory
+            // core.setOutput('artifact-url', artifactURL)
+            // Clean up the temporary file
             node_fs_1.default.unlinkSync(zipFilePath);
             return {
                 id: artifactId,
